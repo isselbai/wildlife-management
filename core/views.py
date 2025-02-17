@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Q, Count, Sum, F
 from django.utils import timezone
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from datetime import datetime, timedelta
 from django.template.defaultfilters import filesizeformat
 from .forms import CustomUserCreationForm, MediaFileUploadForm, MediaSearchForm
@@ -342,3 +342,6 @@ def dashboard(request):
     }
     
     return render(request, 'core/dashboard.html', context)
+
+def health_check(request):
+    return JsonResponse({"status": "healthy"})

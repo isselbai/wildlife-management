@@ -20,4 +20,5 @@ urlpatterns = [
     path('media/duplicates/<int:media_id>/mark-not-duplicate/', views.mark_not_duplicate, name='mark_not_duplicate'),
     path('media/duplicates/batch-delete/', views.batch_delete_duplicates, name='batch_delete_duplicates'),
     path('dashboard/', views.dashboard, name='dashboard'),
+    path('health/', views.health_check, name='health_check'),
 ] 
