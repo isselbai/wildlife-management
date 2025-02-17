@@ -1,0 +1,298 @@
+{% extends 'base.html' %}
+
+{% block title %}Camera Map - Wildlife Management{% endblock %}
+
+{% block extra_head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<!-- MarkerCluster CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css"/>
+<style>
+    #map-container {
+        height: calc(100vh - 200px);
+        min-height: 400px;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .camera-popup {
+        max-width: 300px;
+    }
+    .camera-popup h5 {
+        margin: 0 0 10px 0;
+        color: #333;
+    }
+    .camera-stats {
+        margin: 10px 0;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    .camera-stats p {
+        margin: 0;
+        line-height: 1.4;
+    }
+    .camera-actions {
+        margin-top: 10px;
+    }
+    .leaflet-popup-content-wrapper {
+        border-radius: 8px;
+    }
+    .orientation-indicator {
+        position: absolute;
+        width: 0;
+        height: 0;
+        border-left: 15px solid transparent;
+        border-right: 15px solid transparent;
+        border-bottom: 30px solid rgba(0, 123, 255, 0.5);
+        transform-origin: bottom center;
+        pointer-events: none;
+    }
+    .map-controls {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 15px;
+    }
+    .thumbnail-preview {
+        width: 100%;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin: 10px 0;
+    }
+    .thumbnail-container {
+        position: relative;
+        margin: 10px 0;
+    }
+    .thumbnail-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(0,0,0,0.5);
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        border-radius: 4px;
+    }
+    .thumbnail-prev { left: 5px; }
+    .thumbnail-next { right: 5px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>Camera Locations</h1>
+                <div>
+                    <a href="{% url 'media_list' %}" class="btn btn-outline-primary me-2">
+                        <i class="bi bi-images"></i> View Media
+                    </a>
+                    <a href="{% url 'upload_media' %}" class="btn btn-primary">
+                        <i class="bi bi-upload"></i> Upload Media
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col">
+            <div class="map-controls">
+                <form id="filterForm" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Date Range</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" id="startDate" name="start_date">
+                            <span class="input-group-text">to</span>
+                            <input type="date" class="form-control" id="endDate" name="end_date">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Map Style</label>
+                        <select class="form-select" id="mapStyle">
+                            <option value="street">Street Map</option>
+                            <option value="satellite">Satellite</option>
+                            <option value="terrain">Terrain</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary d-block">Apply Filters</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div id="map-container"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MarkerCluster JS -->
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+<script>
+    // Initialize the map
+    const map = L.map('map-container').setView([{{ map_center.lat }}, {{ map_center.lon }}], {{ map_zoom }});
+
+    // Map tile layers
+    const mapLayers = {
+        street: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }),
+        satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '© Esri'
+        }),
+        terrain: L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/terrain/{z}/{x}/{y}.jpg', {
+            maxZoom: 18,
+            attribution: '© Stamen Design'
+        })
+    };
+
+    // Set default layer
+    mapLayers.street.addTo(map);
+
+    // Initialize marker cluster group
+    const markers = L.markerClusterGroup({
+        maxClusterRadius: 50,
+        spiderfyOnMaxZoom: true,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: true
+    });
+
+    // Custom icon for cameras
+    const cameraIcon = L.divIcon({
+        className: 'camera-marker',
+        html: '<i class="bi bi-camera-fill" style="font-size: 24px; color: #0d6efd;"></i>',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
+
+    // Add markers for each camera
+    {% for camera in cameras %}
+    (function() {
+        const marker = L.marker([{{ camera.latitude }}, {{ camera.longitude }}], {
+            icon: cameraIcon,
+            title: "{{ camera.name }}"
+        });
+
+        // Add orientation indicator if available
+        {% if camera.orientation is not None %}
+        const orientationMarker = L.divIcon({
+            className: 'orientation-indicator',
+            html: '<div class="orientation-indicator" style="transform: rotate({{ camera.orientation }}deg)"></div>',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+        L.marker([{{ camera.latitude }}, {{ camera.longitude }}], {
+            icon: orientationMarker,
+            interactive: false
+        }).addTo(map);
+        {% endif %}
+
+        // Create popup content with thumbnails
+        const popupContent = `
+            <div class="camera-popup">
+                <h5><i class="bi bi-camera-fill"></i> {{ camera.name }}</h5>
+                {% if camera.recent_media %}
+                <div class="thumbnail-container">
+                    <img src="{{ camera.recent_media.0.thumbnail_url }}" 
+                         class="thumbnail-preview" 
+                         alt="Recent media from {{ camera.name }}"
+                         data-media-id="{{ camera.recent_media.0.id }}">
+                    {% if camera.recent_media|length > 1 %}
+                    <button class="thumbnail-nav thumbnail-prev">&lt;</button>
+                    <button class="thumbnail-nav thumbnail-next">&gt;</button>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <div class="camera-stats">
+                    <p><strong>Media Files:</strong> {{ camera.media_count }}</p>
+                    {% if camera.latest_media_date %}
+                    <p><strong>Last Upload:</strong> {{ camera.latest_media_date|date:"F j, Y" }}</p>
+                    {% endif %}
+                    {% if camera.orientation is not None %}
+                    <p><strong>Orientation:</strong> {{ camera.orientation }}°</p>
+                    {% endif %}
+                </div>
+                <div class="camera-actions">
+                    <a href="{% url 'media_list' %}?camera={{ camera.id }}" 
+                       class="btn btn-primary btn-sm">
+                        View Media Files
+                    </a>
+                </div>
+            </div>
+        `;
+
+        marker.bindPopup(popupContent);
+        markers.addLayer(marker);
+    })();
+    {% endfor %}
+
+    // Add marker cluster group to map
+    map.addLayer(markers);
+
+    // Fit map bounds to show all cameras if there are any
+    {% if cameras %}
+    const bounds = markers.getBounds();
+    map.fitBounds(bounds.pad(0.1));  // Add 10% padding around the bounds
+    {% endif %}
+
+    // Handle map style changes
+    document.getElementById('mapStyle').addEventListener('change', function(e) {
+        const style = e.target.value;
+        Object.values(mapLayers).forEach(layer => map.removeLayer(layer));
+        mapLayers[style].addTo(map);
+    });
+
+    // Handle date filter form submission
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        
+        // Reload the page with filter parameters
+        const params = new URLSearchParams(window.location.search);
+        if (startDate) params.set('start_date', startDate);
+        if (endDate) params.set('end_date', endDate);
+        window.location.search = params.toString();
+    });
+
+    // Handle thumbnail navigation
+    document.addEventListener('click', function(e) {
+        if (e.target.matches('.thumbnail-nav')) {
+            const container = e.target.closest('.thumbnail-container');
+            const img = container.querySelector('img');
+            const currentId = img.dataset.mediaId;
+            const mediaList = {{ camera.recent_media_json|safe }};
+            const currentIndex = mediaList.findIndex(m => m.id === currentId);
+            
+            let newIndex;
+            if (e.target.matches('.thumbnail-prev')) {
+                newIndex = (currentIndex - 1 + mediaList.length) % mediaList.length;
+            } else {
+                newIndex = (currentIndex + 1) % mediaList.length;
+            }
+            
+            img.src = mediaList[newIndex].thumbnail_url;
+            img.dataset.mediaId = mediaList[newIndex].id;
+        }
+    });
+</script>
+{% endblock %} 

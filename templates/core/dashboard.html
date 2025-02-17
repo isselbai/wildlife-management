@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Wildlife Management{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stats-number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #0d6efd;
+    }
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.9em;
+    }
+    .chart-container {
+        position: relative;
+        height: 300px;
+        margin-bottom: 20px;
+    }
+    .weather-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .weather-table th,
+    .weather-table td {
+        padding: 8px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .weather-table th {
+        background-color: #f8f9fa;
+        font-weight: 500;
+    }
+    .weather-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    .progress {
+        height: 8px;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Dashboard</h1>
+
+    <!-- Basic Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ basic_stats.total_files }}</div>
+                <div class="stats-label">Total Media Files</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ basic_stats.buck_count }}</div>
+                <div class="stats-label">Buck Sightings</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card text-center">
+                <div class="stats-number">{{ basic_stats.doe_count }}</div>
+                <div class="stats-label">Doe Sightings</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Timeline Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="stats-card">
+                <h3>Upload Timeline (Last 30 Days)</h3>
+                <div class="chart-container">
+                    <canvas id="uploadChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weather Impact -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h3>Weather Conditions Impact</h3>
+                <div class="table-responsive">
+                    <table class="weather-table">
+                        <thead>
+                            <tr>
+                                <th>Weather</th>
+                                <th>Buck</th>
+                                <th>Doe</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for condition in weather_impact %}
+                            <tr>
+                                <td>{{ condition.condition }}</td>
+                                <td>{{ condition.buck_count }}</td>
+                                <td>{{ condition.doe_count }}</td>
+                                <td>{{ condition.total }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-card">
+                <h3>Temperature Range Analysis</h3>
+                <div class="chart-container">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Upload Timeline Chart
+    const uploadCtx = document.getElementById('uploadChart').getContext('2d');
+    new Chart(uploadCtx, {
+        type: 'line',
+        data: {
+            labels: {{ timeline_data.labels|safe }},
+            datasets: [{
+                label: 'Uploads',
+                data: {{ timeline_data.counts|safe }},
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+
+    // Temperature Range Chart
+    const tempCtx = document.getElementById('tempChart').getContext('2d');
+    new Chart(tempCtx, {
+        type: 'bar',
+        data: {
+            labels: [{% for stat in temp_stats %}'{{ stat.range }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+            datasets: [
+                {
+                    label: 'Buck',
+                    data: [{% for stat in temp_stats %}{{ stat.buck_count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: 'rgba(13, 110, 253, 0.7)'
+                },
+                {
+                    label: 'Doe',
+                    data: [{% for stat in temp_stats %}{{ stat.doe_count }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Wildlife Management{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="display-4">Welcome to Wildlife Management</h1>
+    {% if user.is_authenticated %}
+        <p class="lead">Hello, {{ user.email }}!</p>
+        <p>
+            <a href="{% url 'profile' %}" class="btn btn-primary">View Profile</a>
+        </p>
+    {% else %}
+        <p class="lead">Please log in or sign up to get started.</p>
+        <p>
+            <a href="{% url 'login' %}" class="btn btn-primary me-2">Login</a>
+            <a href="{% url 'signup' %}" class="btn btn-success">Sign Up</a>
+        </p>
+    {% endif %}
+</div>
+{% endblock %} 

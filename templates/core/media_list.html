@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}Media Files - Wildlife Management{% endblock %}
+
+{% block extra_head %}
+<style>
+    .media-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px 0;
+    }
+    .media-card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+        overflow: hidden;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .media-preview {
+        position: relative;
+        width: 100%;
+        height: 200px;
+        background-color: #f8f9fa;
+    }
+    .media-preview img, .media-preview video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .media-type-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        padding: 4px 8px;
+        background-color: rgba(0,0,0,0.7);
+        color: white;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+    .media-info {
+        padding: 15px;
+    }
+    .tag-badge {
+        display: inline-block;
+        padding: 0.25em 0.6em;
+        margin: 0.2em;
+        font-size: 0.75em;
+        font-weight: 700;
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 0.25rem;
+        text-decoration: none;
+    }
+    .tag-badge:hover {
+        background-color: #0b5ed7;
+        color: white;
+    }
+    .search-section {
+        background-color: #f8f9fa;
+        padding: 20px;
+        border-radius: 0.25rem;
+        margin-bottom: 20px;
+    }
+    .stats-bar {
+        background-color: white;
+        padding: 10px;
+        border-radius: 0.25rem;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Media Files</h1>
+        <a href="{% url 'upload_media' %}" class="btn btn-primary">Upload New Files</a>
+    </div>
+
+    <div class="search-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="{{ form.camera.id_for_label }}" class="form-label">Camera</label>
+                {{ form.camera }}
+            </div>
+            <div class="col-md-3">
+                <label for="{{ form.tag.id_for_label }}" class="form-label">Tag</label>
+                {{ form.tag }}
+            </div>
+            <div class="col-md-3">
+                <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date</label>
+                {{ form.start_date }}
+            </div>
+            <div class="col-md-3">
+                <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date</label>
+                {{ form.end_date }}
+            </div>
+            <div class="col-md-9">
+                <label for="{{ form.search_query.id_for_label }}" class="form-label">Search</label>
+                {{ form.search_query }}
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Search</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="stats-bar">
+        <strong>Total Results:</strong> {{ total_count }} file{{ total_count|pluralize }}
+        {% if request.GET %}
+            <a href="{% url 'media_list' %}" class="btn btn-sm btn-secondary float-end">Clear Filters</a>
+        {% endif %}
+    </div>
+
+    {% if media_files %}
+        <div class="media-grid">
+            {% for media in media_files %}
+                <div class="media-card">
+                    <div class="media-preview">
+                        {% if media.file_type == 'video' %}
+                            <video controls>
+                                <source src="{{ media.file.url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <span class="media-type-badge">
+                                <i class="bi bi-camera-video-fill"></i> Video
+                            </span>
+                        {% else %}
+                            <img src="{{ media.file.url }}" alt="{{ media.description|default:'Media file' }}">
+                            <span class="media-type-badge">
+                                <i class="bi bi-image-fill"></i> Image
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="media-info">
+                        <h5 class="card-title">{{ media.camera.name }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Uploaded: {{ media.upload_date|date:"F j, Y" }}
+                                {% if media.capture_date %}
+                                    <br>Captured: {{ media.capture_date|date:"F j, Y H:i" }}
+                                {% endif %}
+                            </small>
+                        </p>
+                        {% if media.description %}
+                            <p class="card-text">{{ media.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        {% if media.has_exif %}
+                            <div class="exif-data">
+                                <small class="text-muted">
+                                    {% if media.camera_make or media.camera_model %}
+                                        <div>
+                                            Camera: {{ media.camera_make }} {{ media.camera_model }}
+                                        </div>
+                                    {% endif %}
+                                    {% if media.exposure_time or media.f_number or media.iso_speed %}
+                                        <div>
+                                            Settings: 
+                                            {% if media.exposure_time %}{{ media.exposure_time }}s {% endif %}
+                                            {% if media.f_number %}{{ media.f_number }} {% endif %}
+                                            {% if media.iso_speed %}ISO {{ media.iso_speed }}{% endif %}
+                                        </div>
+                                    {% endif %}
+                                    {% if media.focal_length %}
+                                        <div>Focal Length: {{ media.focal_length }}</div>
+                                    {% endif %}
+                                </small>
+                            </div>
+                        {% endif %}
+                        <div class="tags mt-2">
+                            {% for tag in media.tags.all %}
+                                <a href="?tag={{ tag.id }}" class="tag-badge">{{ tag.name }}</a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No media files found. {% if request.GET %}Try adjusting your search filters or {% endif %}<a href="{% url 'upload_media' %}">upload some files</a> to get started.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit form when date inputs change
+    document.querySelectorAll('input[type="date"], select').forEach(input => {
+        input.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+
+    // Add debounce for search input
+    let timeout = null;
+    document.querySelector('input[type="text"]').addEventListener('input', function() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            this.form.submit();
+        }, 500);
+    });
+</script>
+{% endblock %} 
