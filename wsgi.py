@@ -4,10 +4,14 @@ WSGI config for wildlife_management project.
 
 import os
 import sys
+from pathlib import Path
 
-# Add the project directory to the Python path
-current_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(current_path)
+# Get the project root directory
+BASE_DIR = Path(__file__).resolve().parent
+
+# Add the project root and the wildlife_management directory to Python path
+sys.path.insert(0, str(BASE_DIR))
+sys.path.insert(0, str(BASE_DIR / 'wildlife_management'))
 
 from django.core.wsgi import get_wsgi_application
 

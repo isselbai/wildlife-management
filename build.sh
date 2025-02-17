@@ -20,27 +20,27 @@ echo "Installing Python dependencies..."
 python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
-echo "Creating necessary directories..."
-# Create necessary directories
+echo "Setting up project structure..."
+# Ensure project structure is correct
 mkdir -p static media staticfiles
+touch wildlife_management/__init__.py
+touch core/__init__.py
+
+# Create symbolic link for root-level access
+ln -sf wildlife_management/wsgi.py wsgi.py
+
+echo "Verifying Python path..."
+# Print Python path for debugging
+python -c "import sys; print('Python path:', sys.path)"
+python -c "import os; print('Current directory:', os.getcwd())"
 
 echo "Collecting static files..."
-# Collect static files
 python manage.py collectstatic --noinput
 
 echo "Running database migrations..."
-# Run migrations
 python manage.py migrate
 
-echo "Verifying project structure..."
-# List project structure for debugging
-ls -la
-echo "Content of wildlife_management directory:"
-ls -la wildlife_management/
-
-echo "Checking for __init__.py..."
-# Ensure __init__.py exists
-touch wildlife_management/__init__.py
-touch core/__init__.py
+echo "Final project structure:"
+ls -R
 
 echo "Build script completed." 

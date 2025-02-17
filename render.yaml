@@ -4,7 +4,7 @@ services:
     env: python
     region: oregon
     buildCommand: "./build.sh"
-    startCommand: "gunicorn --chdir /opt/render/project/src wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --log-level debug"
+    startCommand: "gunicorn wsgi:application"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
@@ -18,6 +18,6 @@ services:
         value: 1
       - key: PORT
         value: 8000
-      - key: PYTHON_PATH
-        value: /opt/render/project/src
-    autoDeploy: true 
+      - key: PYTHONPATH
+        value: .
+    healthCheckPath: /health/ 
