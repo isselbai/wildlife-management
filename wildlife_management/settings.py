@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 OPENWEATHER_API_KEY = os.getenv('OPENWEATHER_API_KEY')
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-g3c#1!y!a!m-vn^ul3$zv&+i4$^4r-t$i9v9cip6-$(9a5hc69')
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-default-key-for-development')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False').lower() == 'true'
@@ -81,8 +81,8 @@ WSGI_APPLICATION = 'wildlife_management.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
+        default='sqlite:///' + str(BASE_DIR / 'db.sqlite3'),
         conn_max_age=600,
-        conn_health_checks=True,
     )
 }
 
@@ -116,7 +116,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [
-    BASE_DIR / 'static',
+    BASE_DIR / 'static'
 ]
 
 # Simplified static file serving

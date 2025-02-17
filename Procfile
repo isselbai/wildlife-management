@@ -1,1 +1,1 @@
-web: gunicorn wildlife_management.wsgi --log-file - 
+web: gunicorn wildlife_management.wsgi:application --log-file - 
