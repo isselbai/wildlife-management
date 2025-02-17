@@ -34,8 +34,10 @@ echo "Current directory: $(pwd)"
 echo "Directory contents:"
 ls -la
 
-echo "Verifying Python path..."
+echo "Verifying Python imports..."
 python -c "import sys; print('Python path:', sys.path)"
+python -c "import wildlife_management; print('wildlife_management path:', wildlife_management.__file__)"
+python -c "from wildlife_management.wsgi import application; print('WSGI application loaded successfully')"
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput --clear
