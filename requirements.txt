@@ -1,33 +1,33 @@
-# Core Django
-Django==4.2.0
+# Core Django and utilities
+Django==5.1.1
 python-dotenv==1.0.0
+dj-database-url==2.1.0
 
-# Image Processing
-Pillow==10.0.0  # Requires libjpeg, zlib, libtiff
-django-imagekit==4.1.0
-numpy==1.24.0
-imagehash==4.3.1
-
-# API and Networking
-requests==2.31.0
-
-# Production Server
+# Web server and static files
 gunicorn==21.2.0
 whitenoise==6.6.0
 
 # Database
-psycopg2-binary==2.9.9  # No system dependencies needed
-dj-database-url==2.1.0
+psycopg2-binary==2.9.9
+
+# Image processing
+Pillow==10.0.0
+django-imagekit==4.1.0
+numpy==1.24.0
+imagehash==4.3.1
+
+# API and networking
+requests==2.31.0
 
 # Storage
 django-storages==1.14.2
 boto3==1.34.14
 
-# Forms and UI
+# Forms
 django-crispy-forms==2.1
 
 # File type detection
-python-magic==0.4.27  # Requires libmagic
+python-magic==0.4.27
 
 # Development and testing
 pytest==7.4.3

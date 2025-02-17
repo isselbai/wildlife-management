@@ -1,106 +1,93 @@
 # Wildlife Management System
 
-A Django-based wildlife management system for tracking and analyzing wildlife camera data with weather correlation and AI-powered animal classification.
+A Django-based system for managing wildlife camera data and analysis.
 
-## Features
+## Requirements
 
-- 📸 Media file management with EXIF data extraction
-- 🦌 AI-powered deer classification (buck/doe)
-- 🗺️ Camera location mapping
-- 📊 Weather data correlation
-- 📈 Statistical dashboard
-- 🔄 Duplicate detection
-- 📱 Responsive design
-
-## Tech Stack
-
-- Python 3.8+
-- Django 4.2+
-- PostgreSQL (Production)
-- AWS S3 (Media Storage)
-- Chart.js (Visualizations)
-- Bootstrap 5 (UI)
-- OpenWeather API (Weather Data)
+- Python 3.11.7
+- PostgreSQL (in production)
+- Other dependencies listed in `requirements.txt`
 
 ## Local Development Setup
 
 1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/wildlife-management.git
-cd wildlife-management
-```
+   ```bash
+   git clone https://github.com/isselbai/wildlife-management.git
+   cd wildlife-management
+   ```
 
-2. Create and activate virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Unix/macOS
-# or
-.\venv\Scripts\activate  # On Windows
-```
+2. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
 3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-4. Create `.env` file in project root:
-```
-DJANGO_DEBUG=True
-DJANGO_SECRET_KEY=your-secret-key
-OPENWEATHER_API_KEY=your-openweather-api-key
-```
+4. Create `.env` file from example:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your settings
+   ```
 
 5. Run migrations:
-```bash
-python manage.py migrate
+   ```bash
+   python manage.py migrate
+   ```
+
+6. Create a superuser:
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+7. Run the development server:
+   ```bash
+   python manage.py runserver
+   ```
+
+## Deployment on Railway
+
+1. Fork this repository
+2. Create a new project on Railway
+3. Connect your GitHub repository
+4. Add required environment variables:
+   - `DJANGO_SECRET_KEY`
+   - `DJANGO_DEBUG=False`
+   - `DJANGO_ALLOWED_HOSTS=.railway.app`
+5. Deploy!
+
+## Project Structure
+
+```
+wildlife_management/
+├── core/                   # Main application
+├── wildlife_management/    # Project settings
+├── static/                # Static files
+├── templates/             # HTML templates
+├── manage.py             # Django management script
+├── requirements.txt      # Python dependencies
+└── railway.json         # Railway deployment config
 ```
 
-6. Create superuser:
-```bash
-python manage.py createsuperuser
-```
+## Features
 
-7. Run development server:
-```bash
-python manage.py runserver
-```
-
-Visit http://127.0.0.1:8000/
-
-## Production Deployment
-
-This project is configured for deployment on Railway.app with AWS S3 for media storage.
-
-### Prerequisites
-
-- Railway.app account
-- AWS account with S3 bucket
-- OpenWeather API key
-
-### Environment Variables
-
-Required environment variables in production:
-```
-DJANGO_DEBUG=False
-DJANGO_SECRET_KEY=<secure-secret-key>
-DJANGO_ALLOWED_HOSTS=.railway.app
-DATABASE_URL=<provided-by-railway>
-USE_S3=True
-AWS_ACCESS_KEY_ID=<your-aws-key>
-AWS_SECRET_ACCESS_KEY=<your-aws-secret>
-AWS_STORAGE_BUCKET_NAME=<your-bucket>
-AWS_S3_REGION_NAME=<your-region>
-OPENWEATHER_API_KEY=<your-key>
-```
+- Image/Video Upload and Management
+- Weather Data Integration
+- Duplicate Detection
+- Camera Location Mapping
+- Analytics Dashboard
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details. 
+This project is licensed under the MIT License - see the LICENSE file for details. 
