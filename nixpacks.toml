@@ -5,6 +5,8 @@ nixPkgs = [
     "python311Packages.pip",
     "python311Packages.setuptools",
     "python311Packages.wheel",
+    "postgresql",
+    "libpq",
     "zlib",
     "libjpeg",
     "libtiff",
@@ -24,4 +26,4 @@ cmds = [
 ]
 
 [start]
-cmd = "gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 60 --access-logfile -" 
+cmd = "gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level info" 
