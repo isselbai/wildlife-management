@@ -9,13 +9,15 @@ https://docs.djangoproject.com/en/5.1/howto/deployment/wsgi/
 
 import os
 import sys
+from pathlib import Path
 
-from django.core.wsgi import get_wsgi_application
+# Get the project root directory
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Add the project directory to the Python path
-app_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(app_path)
+# Add the project root to Python path
+sys.path.insert(0, str(BASE_DIR))
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'wildlife_management.settings')
 
+from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()

@@ -21,26 +21,30 @@ python -m pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
 echo "Setting up project structure..."
-# Ensure project structure is correct
-mkdir -p static media staticfiles
+# Create necessary directories with proper permissions
+mkdir -p static media
+mkdir -p staticfiles && chmod 755 staticfiles
+
+# Ensure __init__.py files exist
 touch wildlife_management/__init__.py
 touch core/__init__.py
 
-# Create symbolic link for root-level access
-ln -sf wildlife_management/wsgi.py wsgi.py
+echo "Verifying project structure..."
+echo "Current directory: $(pwd)"
+echo "Directory contents:"
+ls -la
 
 echo "Verifying Python path..."
-# Print Python path for debugging
 python -c "import sys; print('Python path:', sys.path)"
-python -c "import os; print('Current directory:', os.getcwd())"
 
 echo "Collecting static files..."
-python manage.py collectstatic --noinput
+python manage.py collectstatic --noinput --clear
 
 echo "Running database migrations..."
 python manage.py migrate
 
-echo "Final project structure:"
-ls -R
+echo "Verifying static files..."
+echo "Staticfiles directory contents:"
+ls -la staticfiles/
 
 echo "Build script completed." 
