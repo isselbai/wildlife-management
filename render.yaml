@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: wildlife-management
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.7
+      - key: DJANGO_SETTINGS_MODULE
+        value: wildlife_management.settings
+      - key: DJANGO_DEBUG
+        value: False
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: PYTHONUNBUFFERED
+        value: 1
+      - key: PORT
+        value: 8000
+    autoDeploy: true 
