@@ -4,17 +4,7 @@ services:
     env: python
     region: oregon
     buildCommand: "./build.sh"
-    startCommand: >-
-      cd /opt/render/project/src &&
-      gunicorn wildlife_management.wsgi:application
-      --bind 0.0.0.0:$PORT
-      --workers 2
-      --threads 2
-      --timeout 60
-      --access-logfile -
-      --error-logfile -
-      --log-level info
-      --chdir /opt/render/project/src
+    startCommand: "cd /opt/render/project/src && PYTHONPATH=/opt/render/project/src:/opt/render/project/src/wildlife_management gunicorn --chdir /opt/render/project/src wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level info"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
@@ -30,8 +20,6 @@ services:
         value: "8000"
       - key: PYTHONPATH
         value: /opt/render/project/src:/opt/render/project/src/wildlife_management
-      - key: GUNICORN_CMD_ARGS
-        value: "--workers=2 --threads=2 --timeout=60 --bind=0.0.0.0:$PORT --chdir=/opt/render/project/src"
     healthCheckPath: /health/
     autoDeploy: true
     buildFilter:
