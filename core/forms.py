@@ -19,6 +19,28 @@ class CustomUserCreationForm(UserCreationForm):
         model = get_user_model()
         fields = ('email', 'password1', 'password2')
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            if get_user_model().objects.filter(email=email).exists():
+                raise forms.ValidationError('A user with this email already exists.')
+        return email
+
+    def save(self, commit=True):
+        try:
+            user = super().save(commit=False)
+            user.username = None  # Ensure username is None
+            user.email = self.cleaned_data['email'].lower()
+            if commit:
+                user.save()
+            return user
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error saving user: {str(e)}")
+            raise
+
 class CustomAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(
         widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'})

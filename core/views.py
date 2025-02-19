@@ -28,9 +28,30 @@ class SignUpView(CreateView):
     template_name = 'registration/signup.html'
 
     def form_valid(self, form):
-        response = super().form_valid(form)
-        login(self.request, self.object)
-        return response
+        try:
+            with transaction.atomic():
+                response = super().form_valid(form)
+                login(self.request, self.object)
+                return response
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in SignUpView.form_valid: {str(e)}")
+            
+            if 'duplicate key value violates unique constraint' in str(e):
+                form.add_error('email', 'A user with this email already exists.')
+            elif 'password' in str(e).lower():
+                form.add_error('password1', 'Password error: Please check your password meets all requirements.')
+            else:
+                form.add_error(None, "An error occurred while creating your account. Please try again.")
+            
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Form validation errors: {form.errors}")
+        return super().form_invalid(form)
 
 @login_required
 def profile(request):

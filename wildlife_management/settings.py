@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url
+from django.core.exceptions import ImproperlyConfigured
 
 # Load environment variables from .env file
 load_dotenv()
@@ -54,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.DatabaseErrorMiddleware',  # Add database error handling
 ]
 
 ROOT_URLCONF = 'wildlife_management.urls'
@@ -80,12 +82,19 @@ WSGI_APPLICATION = 'wildlife_management.wsgi.application'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 if os.getenv('DATABASE_URL'):
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.getenv('DATABASE_URL'),
-            conn_max_age=600,
-        )
-    }
+    try:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=os.getenv('DATABASE_URL'),
+                conn_max_age=600,
+                ssl_require=not DEBUG,
+            )
+        }
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error configuring database with DATABASE_URL: {str(e)}")
+        raise
 else:
     DATABASES = {
         'default': {
@@ -93,6 +102,10 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+# Ensure we have a database configuration
+if 'default' not in DATABASES:
+    raise ImproperlyConfigured("Database configuration is missing")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -162,6 +175,15 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+else:
+    # Development settings
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+    SECURE_PROXY_SSL_HEADER = None
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -176,3 +198,37 @@ LOGIN_URL = 'login'
 
 # AI Model Settings
 AI_MODELS_DIR = BASE_DIR / 'core' / 'ai_models'
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        'core': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
