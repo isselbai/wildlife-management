@@ -4,20 +4,42 @@ services:
     env: python
     region: oregon
     buildCommand: "./build.sh"
-    startCommand: "gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --log-level info"
+    startCommand: >-
+      cd /opt/render/project/src &&
+      gunicorn wildlife_management.wsgi:application
+      --bind 0.0.0.0:$PORT
+      --workers 2
+      --threads 2
+      --timeout 60
+      --access-logfile -
+      --error-logfile -
+      --log-level info
+      --chdir /opt/render/project/src
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
       - key: DJANGO_SETTINGS_MODULE
         value: wildlife_management.settings
       - key: DJANGO_DEBUG
-        value: False
+        value: "False"
       - key: DJANGO_ALLOWED_HOSTS
         value: ".onrender.com"
       - key: PYTHONUNBUFFERED
-        value: 1
+        value: "1"
       - key: PORT
-        value: 8000
+        value: "8000"
       - key: PYTHONPATH
-        value: /opt/render/project/src
-    healthCheckPath: /health/ 
+        value: /opt/render/project/src:/opt/render/project/src/wildlife_management
+      - key: GUNICORN_CMD_ARGS
+        value: "--workers=2 --threads=2 --timeout=60 --bind=0.0.0.0:$PORT --chdir=/opt/render/project/src"
+    healthCheckPath: /health/
+    autoDeploy: true
+    buildFilter:
+      paths:
+        - wildlife_management/**
+        - core/**
+        - templates/**
+        - static/**
+        - requirements.txt
+        - build.sh
+        - render.yaml 
