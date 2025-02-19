@@ -34,14 +34,7 @@ rm -f .env.render
 if [ -z "$SKIP_APT" ]; then
     log "=== Installing system dependencies ==="
     apt-get update
-    apt-get install -y \
-        python3-dev \
-        build-essential \
-        libpq-dev \
-        libjpeg-dev \
-        zlib1g-dev \
-        libtiff-dev \
-        libmagic-dev
+    apt-get install -y $(cat apt-packages.txt)
 else
     log "Skipping system dependencies (local development)"
 fi
@@ -56,40 +49,15 @@ if ! pip install psycopg2-binary; then
 fi
 
 # Install remaining requirements
-pip install -r <(grep -v "psycopg2" requirements.txt)
+pip install -r requirements.txt
 
 log "=== Setting up project structure ==="
 mkdir -p static media
 mkdir -p staticfiles && chmod 755 staticfiles
 
-# Remove any existing __init__.py files to ensure clean state
-rm -f wildlife_management/__init__.py core/__init__.py
-
-# Create new __init__.py files
-cat > wildlife_management/__init__.py << 'EOL'
-"""
-Wildlife Management WSGI module.
-This module is required for proper Python package resolution.
-"""
-EOL
-
-cat > core/__init__.py << 'EOL'
-"""
-Core application module.
-This module contains the main application functionality.
-"""
-EOL
-
-log "=== Verifying project structure ==="
-if [ ! -f "manage.py" ]; then
-    log "ERROR: manage.py not found"
-    exit 1
-fi
-
-if [ ! -d "wildlife_management" ]; then
-    log "ERROR: wildlife_management directory not found"
-    exit 1
-fi
+# Create necessary directories
+mkdir -p static media staticfiles
+chmod 755 static media staticfiles
 
 # Set environment variables based on environment
 if [ -z "$SKIP_APT" ]; then
@@ -110,25 +78,10 @@ log "PYTHONPATH: $PYTHONPATH"
 log "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
 log "WSGI_APP: $WSGI_APP"
 
-log "=== Verifying Python imports ==="
-python -c "
-import sys
-import json
-print('Python path:')
-print(json.dumps(sys.path, indent=2))
-
-import wildlife_management
-print('wildlife_management path:', wildlife_management.__file__)
-
-from wildlife_management.wsgi import application
-print('WSGI application loaded successfully')
-print('WSGI module location:', wildlife_management.wsgi.__file__)
-"
-
 log "=== Running Django commands ==="
-python manage.py check
+python manage.py check --deploy
 python manage.py collectstatic --noinput --clear
-python manage.py migrate
+python manage.py migrate --noinput
 
 log "=== Creating .env.render ==="
 cat > .env.render << EOL
@@ -164,13 +117,7 @@ fi
 
 gunicorn --version
 
-log "=== Checking for conflicting files ==="
-for file in Procfile railway.json nixpacks.toml; do
-    if [ -f "$file" ]; then
-        log "WARNING: Found potentially conflicting file: $file"
-        log "Contents of $file:"
-        cat "$file"
-    fi
-done
+log "=== Running deployment checks ==="
+python manage.py check --deploy
 
 log "=== Build completed successfully ===" 

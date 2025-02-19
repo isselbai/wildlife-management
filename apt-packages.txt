@@ -1,13 +1,13 @@
 python3-dev
 build-essential
-libmagic-dev
+libpq-dev
 libjpeg-dev
 zlib1g-dev
 libtiff-dev
-libffi-dev
+libmagic-dev
 postgresql-client
+libffi-dev
 postgresql-server-dev-all
-libpq-dev
 libxml2-dev
 libxslt1-dev
 libssl-dev
