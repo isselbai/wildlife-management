@@ -1,67 +1,176 @@
 #!/bin/bash
 
-# Exit on error
+# Exit on error and enable debug output
 set -e
+set -x
 
-echo "Installing system dependencies..."
-# Install system dependencies
-apt-get update
-apt-get install -y \
-    python3-dev \
-    build-essential \
-    libpq-dev \
-    libjpeg-dev \
-    zlib1g-dev \
-    libtiff-dev \
-    libmagic-dev
+# Function to log with timestamps
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1"
+}
 
-echo "Installing Python dependencies..."
-# Upgrade pip and install dependencies
+# Function to check Python version compatibility
+check_python_version() {
+    local py_version=$(python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    log "Detected Python version: $py_version"
+    
+    if [[ "$py_version" > "3.12" ]]; then
+        log "WARNING: Python version $py_version may have compatibility issues with some packages"
+        log "Recommended version is Python 3.11.x as specified in render.yaml"
+    fi
+}
+
+log "=== Starting build process ==="
+
+# Ensure we're in the correct directory
+cd "${BASH_SOURCE%/*}" || exit 1
+log "Working directory: $(pwd)"
+check_python_version
+
+# Remove any existing .env.render to ensure clean state
+rm -f .env.render
+
+# Only run apt-get if we're on Render (checking for specific environment variable)
+if [ -z "$SKIP_APT" ]; then
+    log "=== Installing system dependencies ==="
+    apt-get update
+    apt-get install -y \
+        python3-dev \
+        build-essential \
+        libpq-dev \
+        libjpeg-dev \
+        zlib1g-dev \
+        libtiff-dev \
+        libmagic-dev
+else
+    log "Skipping system dependencies (local development)"
+fi
+
+log "=== Installing Python dependencies ==="
 python -m pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
 
-echo "Setting up project structure..."
-# Create necessary directories with proper permissions
+# Try to install psycopg2-binary, fall back to psycopg2 if it fails
+if ! pip install psycopg2-binary; then
+    log "WARNING: Failed to install psycopg2-binary, attempting to install psycopg2 instead..."
+    pip install psycopg2
+fi
+
+# Install remaining requirements
+pip install -r <(grep -v "psycopg2" requirements.txt)
+
+log "=== Setting up project structure ==="
 mkdir -p static media
 mkdir -p staticfiles && chmod 755 staticfiles
 
-# Ensure __init__.py files exist and are not empty
-echo "# Wildlife Management WSGI module" > wildlife_management/__init__.py
-echo "# Core application module" > core/__init__.py
+# Remove any existing __init__.py files to ensure clean state
+rm -f wildlife_management/__init__.py core/__init__.py
 
-echo "Verifying project structure..."
-echo "Current directory: $(pwd)"
-echo "Directory contents:"
-ls -la
+# Create new __init__.py files
+cat > wildlife_management/__init__.py << 'EOL'
+"""
+Wildlife Management WSGI module.
+This module is required for proper Python package resolution.
+"""
+EOL
 
-# Explicitly set the project root
-export PROJECT_ROOT="/opt/render/project/src"
-echo "Project root: $PROJECT_ROOT"
+cat > core/__init__.py << 'EOL'
+"""
+Core application module.
+This module contains the main application functionality.
+"""
+EOL
 
-# Set up Python path
-echo "Setting up Python path..."
-export PYTHONPATH="${PROJECT_ROOT}:${PROJECT_ROOT}/wildlife_management:$PYTHONPATH"
-echo "PYTHONPATH: $PYTHONPATH"
+log "=== Verifying project structure ==="
+if [ ! -f "manage.py" ]; then
+    log "ERROR: manage.py not found"
+    exit 1
+fi
 
-echo "Verifying Python imports..."
-python -c "import sys; print('Python path:', sys.path)"
-python -c "import wildlife_management; print('wildlife_management path:', wildlife_management.__file__)"
+if [ ! -d "wildlife_management" ]; then
+    log "ERROR: wildlife_management directory not found"
+    exit 1
+fi
 
-echo "Verifying WSGI application..."
-python -c "from wildlife_management.wsgi import application; print('WSGI application loaded successfully')"
-python -c "import wildlife_management.wsgi; print('WSGI module location:', wildlife_management.wsgi.__file__)"
+# Set environment variables based on environment
+if [ -z "$SKIP_APT" ]; then
+    # Render environment
+    export PROJECT_ROOT="/opt/render/project/src"
+else
+    # Local environment
+    export PROJECT_ROOT="$(pwd)"
+fi
 
-echo "Collecting static files..."
+export PYTHONPATH="${PROJECT_ROOT}:${PROJECT_ROOT}/wildlife_management:${PYTHONPATH:-}"
+export DJANGO_SETTINGS_MODULE="wildlife_management.settings"
+export WSGI_APP="wildlife_management.wsgi:application"
+
+log "=== Environment Variables ==="
+log "PROJECT_ROOT: $PROJECT_ROOT"
+log "PYTHONPATH: $PYTHONPATH"
+log "DJANGO_SETTINGS_MODULE: $DJANGO_SETTINGS_MODULE"
+log "WSGI_APP: $WSGI_APP"
+
+log "=== Verifying Python imports ==="
+python -c "
+import sys
+import json
+print('Python path:')
+print(json.dumps(sys.path, indent=2))
+
+import wildlife_management
+print('wildlife_management path:', wildlife_management.__file__)
+
+from wildlife_management.wsgi import application
+print('WSGI application loaded successfully')
+print('WSGI module location:', wildlife_management.wsgi.__file__)
+"
+
+log "=== Running Django commands ==="
+python manage.py check
 python manage.py collectstatic --noinput --clear
-
-echo "Running database migrations..."
 python manage.py migrate
 
-echo "Verifying static files..."
-echo "Staticfiles directory contents:"
-ls -la staticfiles/
+log "=== Creating .env.render ==="
+cat > .env.render << EOL
+#!/bin/bash
+# Wildlife Management deployment environment configuration
+# Generated by build.sh on $(date)
 
-echo "Creating verification file..."
-echo "WSGI_APP=wildlife_management.wsgi:application" > .env.render
+# Core paths and settings
+export PROJECT_ROOT="${PROJECT_ROOT}"
+export PYTHONPATH="${PROJECT_ROOT}:${PROJECT_ROOT}/wildlife_management:${PYTHONPATH:-}"
+export WSGI_APP="wildlife_management.wsgi:application"
+export DJANGO_SETTINGS_MODULE="wildlife_management.settings"
 
-echo "Build script completed." 
+# Verify environment after sourcing
+echo "=== Environment Verification ==="
+echo "PROJECT_ROOT: \$PROJECT_ROOT"
+echo "PYTHONPATH: \$PYTHONPATH"
+echo "WSGI_APP: \$WSGI_APP"
+echo "DJANGO_SETTINGS_MODULE: \$DJANGO_SETTINGS_MODULE"
+EOL
+
+chmod +x .env.render
+
+log "=== Verifying .env.render ==="
+cat .env.render
+source .env.render
+
+log "=== Testing Gunicorn ==="
+if ! command -v gunicorn &> /dev/null; then
+    log "WARNING: gunicorn not installed, installing now..."
+    pip install gunicorn
+fi
+
+gunicorn --version
+
+log "=== Checking for conflicting files ==="
+for file in Procfile railway.json nixpacks.toml; do
+    if [ -f "$file" ]; then
+        log "WARNING: Found potentially conflicting file: $file"
+        log "Contents of $file:"
+        cat "$file"
+    fi
+done
+
+log "=== Build completed successfully ===" 

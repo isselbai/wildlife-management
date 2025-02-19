@@ -3,8 +3,14 @@ services:
     name: wildlife-management
     env: python
     region: oregon
-    buildCommand: "./build.sh"
-    startCommand: "source .env.render && cd /opt/render/project/src && gunicorn $WSGI_APP --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level info --chdir /opt/render/project/src"
+    buildCommand: |
+      python -c 'import sys; assert sys.version_info[:2] == (3,11), "Python 3.11.x required"' && \
+      chmod +x build.sh && ./build.sh
+    startCommand: |
+      source .env.render && \
+      python -c 'import sys; assert sys.version_info[:2] == (3,11), "Python 3.11.x required"' && \
+      cd $PROJECT_ROOT && \
+      gunicorn $WSGI_APP --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level info --chdir $PROJECT_ROOT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
@@ -18,10 +24,14 @@ services:
         value: "1"
       - key: PORT
         value: "8000"
+      - key: PROJECT_ROOT
+        value: /opt/render/project/src
       - key: PYTHONPATH
         value: /opt/render/project/src:/opt/render/project/src/wildlife_management
+      - key: WSGI_APP
+        value: wildlife_management.wsgi:application
     healthCheckPath: /health/
-    autoDeploy: true
+    autoDeploy: false  # Disable auto-deploy to ensure clean builds
     buildFilter:
       paths:
         - wildlife_management/**

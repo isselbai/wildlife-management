@@ -4,4 +4,11 @@ libmagic-dev
 libjpeg-dev
 zlib1g-dev
 libtiff-dev
-libffi-dev 
+libffi-dev
+postgresql-client
+postgresql-server-dev-all
+libpq-dev
+libxml2-dev
+libxslt1-dev
+libssl-dev
+gettext 
