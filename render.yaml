@@ -10,7 +10,7 @@ services:
       source .env.render && \
       python -c 'import sys; assert sys.version_info[:2] == (3,11), "Python 3.11.x required"' && \
       cd $PROJECT_ROOT && \
-      gunicorn $WSGI_APP --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level info --chdir $PROJECT_ROOT
+      gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level debug --chdir $PROJECT_ROOT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
