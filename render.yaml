@@ -6,11 +6,7 @@ services:
     buildCommand: |
       python -c 'import sys; assert sys.version_info[:2] == (3,11), "Python 3.11.x required"' && \
       chmod +x build.sh && ./build.sh
-    startCommand: |
-      source .env.render && \
-      python -c 'import sys; assert sys.version_info[:2] == (3,11), "Python 3.11.x required"' && \
-      cd $PROJECT_ROOT && \
-      gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level debug --chdir $PROJECT_ROOT
+    startCommand: gunicorn wildlife_management.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 60 --access-logfile - --error-logfile - --log-level debug
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.7
@@ -28,8 +24,6 @@ services:
         value: /opt/render/project/src
       - key: PYTHONPATH
         value: /opt/render/project/src:/opt/render/project/src/wildlife_management
-      - key: WSGI_APP
-        value: wildlife_management.wsgi:application
     healthCheckPath: /health/
     autoDeploy: false  # Disable auto-deploy to ensure clean builds
     buildFilter:
